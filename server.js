@@ -48,7 +48,11 @@ app.get("/session", async (req, res) => {
         eagerness: "auto",
         create_response: true,
         interrupt_response: true
-      }
+      },
+      input_audio_noise_reduction: {
+        type: "near_field"
+      },
+      input_audio_format: "pcm16"
     });
 
     console.log("Session created successfully:", response);
