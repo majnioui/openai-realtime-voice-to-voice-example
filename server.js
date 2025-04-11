@@ -49,7 +49,7 @@ app.get("/session", async (req, res) => {
         interrupt_response: true
       },
       input_audio_noise_reduction: {
-        type: "near_field"
+        type: "far_field"
       },
       input_audio_format: "pcm16",
       instructions: `You are the official AI ambassador for Atlas Cloud Services at GITEX Africa 2025 (April 14-16).
