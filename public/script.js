@@ -1,322 +1,395 @@
-// UI elements
-const toggleSwitch = document.getElementById('toggleSwitch');
-const animationContainer = document.getElementById('animationContainer');
-const animationWrapper = document.getElementById('animationWrapper');
-const userSpeakingIndicator = document.getElementById('userSpeakingIndicator');
-const statusText = document.getElementById('statusText');
-const aiSpeakingAnimation = document.getElementById('aiSpeakingAnimation');
-const aiIdleAnimation = document.getElementById('aiIdleAnimation');
+// Config
+const CONFIG = {
+  api: {
+    baseUrl: "https://api.openai.com/v1/realtime",
+    model: "gpt-4o-mini-realtime-preview-2024-12-17",
+    sessionEndpoint: "/session"
+  },
+  animation: {
+    urls: {
+      userSpeaking: 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json',
+      aiSpeaking: 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json',
+      aiIdle: 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json'
+    },
+    speeds: {
+      idle: 0.5,
+      speaking: 2
+    },
+    transitionDelay: 800
+  },
+  audio: {
+    fftSize: 256,
+    threshold: 10
+  }
+};
 
-// Animation URLs
-const userSpeakingAnimationUrl = 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json';
-const speakingAnimationUrl = 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json';
-const idleAnimationUrl = 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json';
+// IIFE for encapsulation
+(function() {
+  // DOM Elements
+  const elements = {
+    toggleSwitch: document.getElementById('toggleSwitch'),
+    animationWrapper: document.getElementById('animationWrapper'),
+    userSpeakingIndicator: document.getElementById('userSpeakingIndicator'),
+    statusText: document.getElementById('statusText'),
+    aiSpeakingAnimation: document.getElementById('aiSpeakingAnimation'),
+    aiIdleAnimation: document.getElementById('aiIdleAnimation')
+  };
 
-// Global variables
-let pc = null;
-let dc = null;
-let micStream = null;
-let audioEl = null;
-let userAnimation = null;
-let isActive = false;
-let isSpeaking = false;
-
-// Event listeners
-toggleSwitch.addEventListener('change', toggleConversation);
-
-// Initialize animations with proper speeds
-document.addEventListener('DOMContentLoaded', () => {
-    // Force different speeds for the two animations to distinguish them
-
-    // Make sure both animations are loaded properly
-    aiIdleAnimation.addEventListener('ready', () => {
-        // Ensure idle animation is always playing at slow speed
-        aiIdleAnimation.setSpeed(0.5);
-        aiIdleAnimation.play();
-    });
-
-    aiSpeakingAnimation.addEventListener('ready', () => {
-        // Set faster speed for speaking animation
-        aiSpeakingAnimation.setSpeed(2);
-        // Preload first frame but keep paused
-        aiSpeakingAnimation.pause();
-    });
-});
-
-// Toggle conversation on/off
-function toggleConversation() {
-    if (toggleSwitch.checked) {
-        startConversation();
-    } else {
-        stopConversation();
+  // State
+  const state = {
+    connection: {
+      peerConnection: null,
+      dataChannel: null,
+      micStream: null,
+      audioElement: null
+    },
+    status: {
+      isActive: false,
+      isSpeaking: false
     }
-}
+  };
 
-// Switch animation with fade effect
-function switchAnimation(isAISpeaking) {
-    if (isAISpeaking === isSpeaking) return;
-    // Set state before visual changes to prevent multiple transitions
-    isSpeaking = isAISpeaking;
+  // UI Controller
+  const uiController = {
+    updateStatus(message) {
+      elements.statusText.textContent = message;
+    },
 
-    // Add a small delay to ensure smooth transition
-    setTimeout(() => {
-        // Update CSS class for smooth transition
+    toggleUserSpeakingIndicator(isSpeaking) {
+      if (isSpeaking) {
+        elements.userSpeakingIndicator.classList.add('user-speaking');
+        elements.userSpeakingIndicator.innerHTML = `
+          <dotlottie-player src="${CONFIG.animation.urls.userSpeaking}" background="transparent"
+          speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
+        `;
+      } else {
+        elements.userSpeakingIndicator.classList.remove('user-speaking');
+        elements.userSpeakingIndicator.innerHTML = '';
+      }
+    },
+
+    switchAnimation(isAISpeaking) {
+      if (isAISpeaking === state.status.isSpeaking) return;
+
+      state.status.isSpeaking = isAISpeaking;
+
+      setTimeout(() => {
         if (isAISpeaking) {
-            animationWrapper.classList.add('ai-speaking');
-            // Ensure speaking animation is playing at faster speed
-            aiSpeakingAnimation.setSpeed(2);
-            aiSpeakingAnimation.play();
+          elements.animationWrapper.classList.add('ai-speaking');
+          elements.aiSpeakingAnimation.setSpeed(CONFIG.animation.speeds.speaking);
+          elements.aiSpeakingAnimation.play();
         } else {
-            animationWrapper.classList.remove('ai-speaking');
-            // We don't pause the speaking animation immediately to allow for smooth transition
-            setTimeout(() => {
-                if (!isSpeaking) {  // Double-check state hasn't changed
-                    aiSpeakingAnimation.pause();
-                }
-            }, 800); // Match transition time from CSS
-        }
-    }, 10);
-}
+          elements.animationWrapper.classList.remove('ai-speaking');
 
-// Start conversation
-async function startConversation() {
-    try {
-        // Update UI
-        isActive = true;
-        statusText.textContent = "Connecting to AI...";
-
-        // Reset animation state
-        animationWrapper.classList.remove('ai-speaking');
-        isSpeaking = false;
-        aiSpeakingAnimation.pause();
-        aiIdleAnimation.setSpeed(0.5);
-        aiIdleAnimation.play();
-
-        // Clean up any previous session
-        if (pc) {
-            stopConversation();
-            // Add a small delay to ensure cleanup is complete
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        // Get session token from our server
-        const tokenResponse = await fetch("/session");
-        const data = await tokenResponse.json();
-
-        if (!tokenResponse.ok) {
-            throw new Error(`Server error: ${data.error || tokenResponse.statusText}`);
-        }
-
-        // Check if user toggled off during fetch
-        if (!isActive) return;
-
-        const EPHEMERAL_KEY = data.client_secret.value;
-
-        // Create a peer connection
-        pc = new RTCPeerConnection();
-
-        // Set up audio element for AI's voice
-        audioEl = document.createElement("audio");
-        audioEl.autoplay = true;
-        document.body.appendChild(audioEl);
-
-        pc.ontrack = e => {
-            // Check if we're still active
-            if (!isActive || !pc) return;
-
-            audioEl.srcObject = e.streams[0];
-            statusText.textContent = "AI is ready to talk";
-
-            // Create audio context to detect when AI is speaking
-            const audioContext = new AudioContext();
-            const source = audioContext.createMediaStreamSource(e.streams[0]);
-            const analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            source.connect(analyser);
-
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-
-            // Regularly check if AI is speaking
-            function checkAudioLevel() {
-                if (!audioEl || !audioEl.srcObject || !isActive) return;
-
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    sum += dataArray[i];
-                }
-
-                const average = sum / bufferLength;
-                const threshold = 10; // Adjust if needed
-
-                switchAnimation(average > threshold);
-
-                if (pc && isActive) {
-                    requestAnimationFrame(checkAudioLevel);
-                }
+          setTimeout(() => {
+            if (!state.status.isSpeaking) {
+              elements.aiSpeakingAnimation.pause();
             }
+          }, CONFIG.animation.transitionDelay);
+        }
+      }, 10);
+    },
 
-            requestAnimationFrame(checkAudioLevel);
-        };
+    resetAnimationState() {
+      elements.animationWrapper.classList.remove('ai-speaking');
+      state.status.isSpeaking = false;
+      elements.aiSpeakingAnimation.pause();
+      elements.aiIdleAnimation.setSpeed(CONFIG.animation.speeds.idle);
+      elements.aiIdleAnimation.play();
+    }
+  };
 
-        // Check if still active before continuing
-        if (!isActive) {
-            if (pc) {
-                pc.close();
-                pc = null;
-            }
-            return;
+  // Audio Analyzer
+  const audioAnalyzer = {
+    createAnalyzer(mediaStream) {
+      if (!mediaStream || !state.status.isActive) return null;
+
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = CONFIG.audio.fftSize;
+      source.connect(analyser);
+
+      return analyser;
+    },
+
+    startMonitoring(analyser, mediaStream) {
+      if (!analyser || !mediaStream) return;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const checkAudioLevel = () => {
+        if (!state.connection.audioElement ||
+            !state.connection.audioElement.srcObject ||
+            !state.status.isActive) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        const average = Array.from(dataArray).reduce((sum, val) => sum + val, 0) / bufferLength;
+
+        uiController.switchAnimation(average > CONFIG.audio.threshold);
+
+        if (state.connection.peerConnection && state.status.isActive) {
+          requestAnimationFrame(checkAudioLevel);
+        }
+      };
+
+      requestAnimationFrame(checkAudioLevel);
+    }
+  };
+
+  // WebRTC Connection Handler
+  const connectionHandler = {
+    async createPeerConnection(token) {
+      const pc = new RTCPeerConnection();
+      state.connection.peerConnection = pc;
+
+      this.setupAudioElement();
+      this.setupTrackHandler(pc);
+
+      return pc;
+    },
+
+    setupAudioElement() {
+      const audioEl = document.createElement("audio");
+      audioEl.autoplay = true;
+      document.body.appendChild(audioEl);
+      state.connection.audioElement = audioEl;
+    },
+
+    setupTrackHandler(pc) {
+      pc.ontrack = event => {
+        if (!state.status.isActive || !pc) return;
+
+        state.connection.audioElement.srcObject = event.streams[0];
+        uiController.updateStatus("AI is ready to talk");
+
+        const analyser = audioAnalyzer.createAnalyzer(event.streams[0]);
+        if (analyser) {
+          audioAnalyzer.startMonitoring(analyser, event.streams[0]);
+        }
+      };
+    },
+
+    async setupMicrophone(pc) {
+      try {
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        if (!state.status.isActive || !pc) {
+          this.cleanupMicStream(micStream);
+          return false;
         }
 
-        // Add local audio track (microphone)
-        try {
-            micStream = await navigator.mediaDevices.getUserMedia({
-                audio: true
-            });
+        state.connection.micStream = micStream;
+        micStream.getTracks().forEach(track => pc.addTrack(track, micStream));
+        return true;
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        uiController.updateStatus(`Microphone error: ${error.message}`);
+        return false;
+      }
+    },
 
-            // Check if still active after getting media
-            if (!isActive || !pc) {
-                if (micStream) {
-                    micStream.getTracks().forEach(track => track.stop());
-                    micStream = null;
-                }
-                return;
-            }
+    setupDataChannel(pc) {
+      const dc = pc.createDataChannel("oai-events");
+      state.connection.dataChannel = dc;
 
-            micStream.getTracks().forEach(track => pc.addTrack(track, micStream));
-        } catch (mediaError) {
-            console.error('Error accessing microphone:', mediaError);
-            statusText.textContent = `Microphone error: ${mediaError.message}`;
-            toggleSwitch.checked = false;
-            isActive = false;
-            return;
+      dc.addEventListener("message", event => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "input_audio_buffer.speech_started") {
+          uiController.toggleUserSpeakingIndicator(true);
+          uiController.updateStatus("Listening to you...");
+        } else if (data.type === "input_audio_buffer.speech_stopped") {
+          uiController.toggleUserSpeakingIndicator(false);
+          uiController.updateStatus("Processing your request...");
         }
+      });
 
-        // Set up data channel
-        dc = pc.createDataChannel("oai-events");
-        dc.addEventListener("message", handleMessage);
+      return dc;
+    },
 
-        // Create and send offer
+    cleanupMicStream(stream = null) {
+      const micStream = stream || state.connection.micStream;
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        if (stream !== state.connection.micStream) {
+          state.connection.micStream = null;
+        }
+      }
+    },
+
+    async connectToAI(token) {
+      const pc = state.connection.peerConnection;
+      if (!pc) return false;
+
+      try {
         const offer = await pc.createOffer();
 
-        // Check if still active
-        if (!isActive || !pc) return;
+        if (!state.status.isActive || !pc) return false;
 
         await pc.setLocalDescription(offer);
 
-        const baseUrl = "https://api.openai.com/v1/realtime";
-        const model = "gpt-4o-mini-realtime-preview-2024-12-17";
-
-        const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
-            method: "POST",
-            body: offer.sdp,
-            headers: {
-                Authorization: `Bearer ${EPHEMERAL_KEY}`,
-                "Content-Type": "application/sdp"
-            },
+        const sdpResponse = await fetch(`${CONFIG.api.baseUrl}?model=${CONFIG.api.model}`, {
+          method: "POST",
+          body: offer.sdp,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/sdp"
+          },
         });
 
-        // Check again if still active
-        if (!isActive || !pc) return;
+        if (!state.status.isActive || !pc) return false;
 
         if (!sdpResponse.ok) {
-            throw new Error(`Failed to connect: ${sdpResponse.status} ${sdpResponse.statusText}`);
+          throw new Error(`Failed to connect: ${sdpResponse.status} ${sdpResponse.statusText}`);
         }
 
         const answer = {
-            type: "answer",
-            sdp: await sdpResponse.text(),
+          type: "answer",
+          sdp: await sdpResponse.text(),
         };
 
-        // Final check before setting remote description
-        if (pc && isActive) {
-            try {
-                // Check the signaling state before setting remote description
-                if (pc.signalingState === "have-local-offer") {
-                    await pc.setRemoteDescription(answer);
-                    statusText.textContent = "Connected - I'm listening...";
-                } else {
-                    console.warn("Invalid signaling state for setRemoteDescription:", pc.signalingState);
-                    // Reset the connection if in invalid state
-                    stopConversation();
-                    toggleSwitch.checked = false;
-                }
-            } catch (rtcError) {
-                console.error("WebRTC error:", rtcError);
-                statusText.textContent = `Connection error: ${rtcError.message}`;
-                stopConversation();
-                toggleSwitch.checked = false;
-            }
+        if (pc.signalingState === "have-local-offer") {
+          await pc.setRemoteDescription(answer);
+          uiController.updateStatus("Connected - I'm listening...");
+          return true;
+        } else {
+          console.warn("Invalid signaling state for setRemoteDescription:", pc.signalingState);
+          return false;
+        }
+      } catch (error) {
+        console.error("WebRTC error:", error);
+        uiController.updateStatus(`Connection error: ${error.message}`);
+        return false;
+      }
+    }
+  };
+
+  // Main Controller
+  const controller = {
+    async fetchSessionToken() {
+      try {
+        const response = await fetch(CONFIG.api.sessionEndpoint);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${data.error || response.statusText}`);
         }
 
-    } catch (error) {
+        return data.client_secret.value;
+      } catch (error) {
+        throw new Error(`Failed to get session token: ${error.message}`);
+      }
+    },
+
+    async startConversation() {
+      try {
+        state.status.isActive = true;
+        uiController.updateStatus("Connecting to AI...");
+        uiController.resetAnimationState();
+
+        if (state.connection.peerConnection) {
+          this.stopConversation();
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        const token = await this.fetchSessionToken();
+
+        if (!state.status.isActive) return;
+
+        const pc = await connectionHandler.createPeerConnection(token);
+
+        if (!state.status.isActive) {
+          this.cleanup();
+          return;
+        }
+
+        const micSetupSuccess = await connectionHandler.setupMicrophone(pc);
+        if (!micSetupSuccess) {
+          elements.toggleSwitch.checked = false;
+          state.status.isActive = false;
+          this.cleanup();
+          return;
+        }
+
+        connectionHandler.setupDataChannel(pc);
+
+        const connectionSuccess = await connectionHandler.connectToAI(token);
+        if (!connectionSuccess) {
+          elements.toggleSwitch.checked = false;
+          this.stopConversation();
+        }
+      } catch (error) {
         console.error('Error starting conversation:', error);
-        statusText.textContent = `Error: ${error.message}`;
-        toggleSwitch.checked = false;
-        isActive = false;
+        uiController.updateStatus(`Error: ${error.message}`);
+        elements.toggleSwitch.checked = false;
+        state.status.isActive = false;
+        this.cleanup();
+      }
+    },
+
+    stopConversation() {
+      state.status.isActive = false;
+
+      this.cleanup();
+
+      uiController.resetAnimationState();
+      uiController.toggleUserSpeakingIndicator(false);
+      uiController.updateStatus("ACS AI Voice Assistant");
+    },
+
+    cleanup() {
+      // Close data channel
+      if (state.connection.dataChannel) {
+        state.connection.dataChannel.close();
+        state.connection.dataChannel = null;
+      }
+
+      // Close peer connection
+      if (state.connection.peerConnection) {
+        state.connection.peerConnection.close();
+        state.connection.peerConnection = null;
+      }
+
+      // Stop microphone
+      connectionHandler.cleanupMicStream();
+      state.connection.micStream = null;
+
+      // Stop audio
+      if (state.connection.audioElement) {
+        state.connection.audioElement.pause();
+        state.connection.audioElement.srcObject = null;
+      }
+    },
+
+    toggleConversation() {
+      if (elements.toggleSwitch.checked) {
+        this.startConversation();
+      } else {
+        this.stopConversation();
+      }
+    },
+
+    init() {
+      // Event listeners
+      elements.toggleSwitch.addEventListener('change', () => this.toggleConversation());
+
+      // Initialize animations
+      document.addEventListener('DOMContentLoaded', () => {
+        elements.aiIdleAnimation.addEventListener('ready', () => {
+          elements.aiIdleAnimation.setSpeed(CONFIG.animation.speeds.idle);
+          elements.aiIdleAnimation.play();
+        });
+
+        elements.aiSpeakingAnimation.addEventListener('ready', () => {
+          elements.aiSpeakingAnimation.setSpeed(CONFIG.animation.speeds.speaking);
+          elements.aiSpeakingAnimation.pause();
+        });
+      });
     }
-}
+  };
 
-// Handle messages from the data channel
-function handleMessage(event) {
-    const data = JSON.parse(event.data);
-
-    if (data.type === "input_audio_buffer.speech_started") {
-        userSpeakingIndicator.classList.add('user-speaking');
-        statusText.textContent = "Listening to you...";
-
-        // Show user speaking animation in the indicator
-        userSpeakingIndicator.innerHTML = `
-            <dotlottie-player src="${userSpeakingAnimationUrl}" background="transparent" speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
-        `;
-    } else if (data.type === "input_audio_buffer.speech_stopped") {
-        userSpeakingIndicator.classList.remove('user-speaking');
-        statusText.textContent = "Processing your request...";
-
-        // Remove the user speaking animation
-        userSpeakingIndicator.innerHTML = '';
-    }
-}
-
-// Stop conversation
-function stopConversation() {
-    // Update UI state
-    isActive = false;
-
-    // Close data channel
-    if (dc) {
-        dc.close();
-        dc = null;
-    }
-
-    // Close peer connection
-    if (pc) {
-        pc.close();
-        pc = null;
-    }
-
-    // Stop microphone
-    if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
-    }
-
-    // Stop audio
-    if (audioEl) {
-        audioEl.pause();
-        audioEl.srcObject = null;
-    }
-
-    // Reset animation to idle
-    animationWrapper.classList.remove('ai-speaking');
-    isSpeaking = false;
-    aiSpeakingAnimation.pause();
-
-    // Clean up user speaking animation
-    userSpeakingIndicator.innerHTML = '';
-
-    // Update UI
-    userSpeakingIndicator.classList.remove('user-speaking');
-    statusText.textContent = "ACS AI Voice Assistant";
-}
+  // Initialize the application
+  controller.init();
+})();
