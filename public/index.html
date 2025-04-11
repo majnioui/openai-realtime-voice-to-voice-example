@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple AI Voice Chat</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .mic-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin-right: 5px;
+        }
+        .mic-active {
+            background-color: #f44336;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Voice Chat</h1>
+
+        <div class="controls">
+            <button id="startButton">Start Conversation</button>
+            <button id="stopButton" disabled>Stop Conversation</button>
+        </div>
+
+        <div class="status">
+            <p>Status: <span id="statusText">Ready</span></p>
+            <p>Microphone: <span class="mic-status" id="micStatus"></span> <span id="micStatusText">Inactive</span></p>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        // UI elements
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusText = document.getElementById('statusText');
+        const micStatus = document.getElementById('micStatus');
+        const micStatusText = document.getElementById('micStatusText');
+        const messagesContainer = document.getElementById('messages');
+
+        // Global variables
+        let pc = null;
+        let dc = null;
+        let micStream = null;
+        let audioEl = null;
+
+        // Event listeners
+        startButton.addEventListener('click', startConversation);
+        stopButton.addEventListener('click', stopConversation);
+
+        // Add a message to the chat log
+        function logMessage(text, sender) {
+            const message = document.createElement('div');
+            message.style.padding = '8px';
+            message.style.marginBottom = '8px';
+            message.style.borderRadius = '4px';
+
+            if (sender === 'user') {
+                message.style.backgroundColor = '#e3f2fd';
+                message.textContent = `You: ${text}`;
+            } else if (sender === 'ai') {
+                message.style.backgroundColor = '#f1f8e9';
+                message.textContent = `AI: ${text}`;
+            } else {
+                message.style.backgroundColor = '#f5f5f5';
+                message.textContent = `System: ${text}`;
+            }
+
+            messagesContainer.appendChild(message);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Start conversation
+        async function startConversation() {
+            try {
+                // Update UI
+                statusText.textContent = 'Connecting...';
+                startButton.disabled = true;
+                logMessage('Connecting to AI...', 'system');
+
+                // Clean up any previous session
+                if (pc) {
+                    stopConversation();
+                }
+
+                // Get session token from our server
+                const tokenResponse = await fetch("/session");
+                const data = await tokenResponse.json();
+                console.log("Session data:", data);
+
+                if (!tokenResponse.ok) {
+                    throw new Error(`Server error: ${data.error || tokenResponse.statusText}`);
+                }
+
+                const EPHEMERAL_KEY = data.client_secret.value;
+
+                // Create a peer connection
+                pc = new RTCPeerConnection();
+
+                // Set up audio element for AI's voice
+                audioEl = document.createElement("audio");
+                audioEl.autoplay = true;
+                document.body.appendChild(audioEl);
+
+                pc.ontrack = e => {
+                    audioEl.srcObject = e.streams[0];
+                    logMessage('AI connected and ready to speak', 'system');
+                };
+
+                // Add local audio track (microphone)
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+                micStream.getTracks().forEach(track => pc.addTrack(track, micStream));
+
+                // Update microphone UI
+                micStatus.classList.add('mic-active');
+                micStatusText.textContent = 'Active';
+
+                // Set up data channel
+                dc = pc.createDataChannel("oai-events");
+                dc.addEventListener("message", handleMessage);
+
+                // Create and send offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const baseUrl = "https://api.openai.com/v1/realtime";
+                const model = "gpt-4o-realtime-preview-2024-12-17";
+
+                const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+                    method: "POST",
+                    body: offer.sdp,
+                    headers: {
+                        Authorization: `Bearer ${EPHEMERAL_KEY}`,
+                        "Content-Type": "application/sdp"
+                    },
+                });
+
+                if (!sdpResponse.ok) {
+                    throw new Error(`Failed to connect: ${sdpResponse.status} ${sdpResponse.statusText}`);
+                }
+
+                const answer = {
+                    type: "answer",
+                    sdp: await sdpResponse.text(),
+                };
+
+                await pc.setRemoteDescription(answer);
+
+                // Update UI
+                statusText.textContent = 'Connected';
+                stopButton.disabled = false;
+                logMessage('Connection established. You can start speaking.', 'system');
+
+            } catch (error) {
+                console.error('Error starting conversation:', error);
+                statusText.textContent = `Error: ${error.message}`;
+                startButton.disabled = false;
+                logMessage(`Error: ${error.message}`, 'system');
+            }
+        }
+
+        // Handle messages from the data channel
+        function handleMessage(event) {
+            const data = JSON.parse(event.data);
+            console.log("Received event:", data);
+
+            if (data.type === "response.content_block.delta") {
+                if (data.delta && data.delta.text) {
+                    logMessage(data.delta.text, 'ai');
+                }
+            } else if (data.type === "input_audio_buffer.speech_started") {
+                console.log("User started speaking");
+                micStatus.classList.add('mic-active');
+                micStatusText.textContent = 'Speaking';
+            } else if (data.type === "input_audio_buffer.speech_stopped") {
+                console.log("User stopped speaking");
+                micStatus.classList.remove('mic-active');
+                micStatusText.textContent = 'Listening';
+            } else if (data.type === "error") {
+                const errorMsg = data.error && data.error.message ? data.error.message : "Unknown error";
+                logMessage(`Error: ${errorMsg}`, 'system');
+                console.error("API Error:", data.error);
+            }
+        }
+
+        // Stop conversation
+        function stopConversation() {
+            // Close data channel
+            if (dc) {
+                dc.close();
+                dc = null;
+            }
+
+            // Close peer connection
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+
+            // Stop microphone
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+            }
+
+            // Stop audio
+            if (audioEl) {
+                audioEl.pause();
+                audioEl.srcObject = null;
+            }
+
+            // Update UI
+            micStatus.classList.remove('mic-active');
+            micStatusText.textContent = 'Inactive';
+            statusText.textContent = 'Disconnected';
+            startButton.disabled = false;
+            stopButton.disabled = true;
+
+            logMessage('Conversation ended', 'system');
+        }
+    </script>
+</body>
+</html>
