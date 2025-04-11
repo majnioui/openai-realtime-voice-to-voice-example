@@ -38,7 +38,6 @@ app.get("/models", async (req, res) => {
 // Endpoint to get an ephemeral token
 app.get("/session", async (req, res) => {
   try {
-    console.log("Creating a session...");
     // Using correct format for Realtime API with VAD configuration
     const response = await openai.beta.realtime.sessions.create({
       model: "gpt-4o-mini-realtime-preview-2024-12-17",
@@ -99,8 +98,6 @@ When a conversation appears to be ending, thank the visitor for their interest a
 
 Remember: You are the first impression many visitors will have of Atlas Cloud Services. Your goal is to generate interest, demonstrate expertise, and facilitate meaningful connections at this important industry event.`
     });
-
-    console.log("Session created successfully:", response);
     res.json(response);
   } catch (error) {
     console.error("Error generating ephemeral token:", error);

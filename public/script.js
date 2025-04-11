@@ -30,14 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make sure both animations are loaded properly
     aiIdleAnimation.addEventListener('ready', () => {
-        console.log("Idle animation ready");
         // Ensure idle animation is always playing at slow speed
         aiIdleAnimation.setSpeed(0.5);
         aiIdleAnimation.play();
     });
 
     aiSpeakingAnimation.addEventListener('ready', () => {
-        console.log("Speaking animation ready");
         // Set faster speed for speaking animation
         aiSpeakingAnimation.setSpeed(2);
         // Preload first frame but keep paused
@@ -57,9 +55,6 @@ function toggleConversation() {
 // Switch animation with fade effect
 function switchAnimation(isAISpeaking) {
     if (isAISpeaking === isSpeaking) return;
-
-    console.log("Animation state changing to:", isAISpeaking ? "SPEAKING" : "IDLE");
-
     // Set state before visual changes to prevent multiple transitions
     isSpeaking = isAISpeaking;
 
@@ -71,7 +66,6 @@ function switchAnimation(isAISpeaking) {
             // Ensure speaking animation is playing at faster speed
             aiSpeakingAnimation.setSpeed(2);
             aiSpeakingAnimation.play();
-            console.log("Speaking animation playing at speed 2");
         } else {
             animationWrapper.classList.remove('ai-speaking');
             // We don't pause the speaking animation immediately to allow for smooth transition
@@ -108,7 +102,6 @@ async function startConversation() {
         // Get session token from our server
         const tokenResponse = await fetch("/session");
         const data = await tokenResponse.json();
-        console.log("Session data:", data);
 
         if (!tokenResponse.ok) {
             throw new Error(`Server error: ${data.error || tokenResponse.statusText}`);
@@ -150,11 +143,6 @@ async function startConversation() {
 
                 const average = sum / bufferLength;
                 const threshold = 10; // Adjust if needed
-
-                // Debug info to help troubleshoot
-                if (average > threshold) {
-                    console.log("Audio level:", average, "- AI is speaking");
-                }
 
                 switchAnimation(average > threshold);
 
@@ -216,10 +204,8 @@ async function startConversation() {
 // Handle messages from the data channel
 function handleMessage(event) {
     const data = JSON.parse(event.data);
-    console.log("Received event:", data);
 
     if (data.type === "input_audio_buffer.speech_started") {
-        console.log("User started speaking");
         userSpeakingIndicator.classList.add('user-speaking');
         statusText.textContent = "Listening to you...";
 
@@ -228,7 +214,6 @@ function handleMessage(event) {
             <dotlottie-player src="${userSpeakingAnimationUrl}" background="transparent" speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
         `;
     } else if (data.type === "input_audio_buffer.speech_stopped") {
-        console.log("User stopped speaking");
         userSpeakingIndicator.classList.remove('user-speaking');
         statusText.textContent = "Processing your request...";
 
