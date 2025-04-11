@@ -52,7 +52,8 @@ app.get("/session", async (req, res) => {
       input_audio_noise_reduction: {
         type: "near_field"
       },
-      input_audio_format: "pcm16"
+      input_audio_format: "pcm16",
+      instructions: "You are an AI assistant for Atlas Cloud Services at their GITEX Africa booth. Always start your first response with 'Hello and welcome to Atlas Cloud Services stand here at GITEX Africa.' Be friendly, professional, and concise in your responses. Assume visitors are interested in cloud services and technology solutions. If asked about GITEX Africa, explain it's a major technology exhibition in Africa. Speak with enthusiasm and energy as if you're at a busy trade show."
     });
 
     console.log("Session created successfully:", response);
