@@ -115,22 +115,21 @@
             bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            width: 30px;
-            height: 30px;
+            width: 96px;
+            height: 96px;
             border-radius: 50%;
-            background-color: rgba(204, 204, 204, 0.5);
+            background-color: transparent;
             transition: all 0.3s;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
         }
 
         .user-speaking {
-            animation: pulse 1.2s infinite alternate;
-            box-shadow: 0 0 20px rgba(86, 78, 187, 0.5);
-        }
-
-        @keyframes pulse {
-            0% { background-color: var(--accent-color); transform: translateX(-50%) scale(1); }
-            100% { background-color: var(--secondary-color); transform: translateX(-50%) scale(1.3); }
+            animation: none;
+            box-shadow: none;
         }
 
         .status-text {
@@ -173,6 +172,7 @@
         // Animation URLs
         const idleAnimation = 'https://lottie.host/aec2610e-f5fb-4861-8c9b-bf26695a655b/epnReZjYSz.json';
         const talkingAnimation = 'https://lottie.host/14f75e6d-e9ac-4f25-b48a-197002332f02/lisRG3x07s.json';
+        const userSpeakingAnimation = 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json';
 
         // Global variables
         let pc = null;
@@ -180,6 +180,7 @@
         let micStream = null;
         let audioEl = null;
         let animation = null;
+        let userAnimation = null;
         let isActive = false;
 
         // Event listeners
@@ -371,10 +372,29 @@
                 console.log("User started speaking");
                 userSpeakingIndicator.classList.add('user-speaking');
                 statusText.textContent = "Listening to you...";
+
+                // Show user speaking animation in the indicator
+                if (userAnimation) {
+                    userAnimation.destroy();
+                }
+
+                userAnimation = lottie.loadAnimation({
+                    container: userSpeakingIndicator,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: userSpeakingAnimation
+                });
             } else if (data.type === "input_audio_buffer.speech_stopped") {
                 console.log("User stopped speaking");
                 userSpeakingIndicator.classList.remove('user-speaking');
                 statusText.textContent = "Processing your request...";
+
+                // Remove the user speaking animation
+                if (userAnimation) {
+                    userAnimation.destroy();
+                    userAnimation = null;
+                }
             }
         }
 
@@ -422,6 +442,12 @@
                 autoplay: true,
                 path: idleAnimation
             });
+
+            // Clean up user speaking animation
+            if (userAnimation) {
+                userAnimation.destroy();
+                userAnimation = null;
+            }
 
             // Update UI
             userSpeakingIndicator.classList.remove('user-speaking');
