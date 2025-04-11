@@ -95,6 +95,8 @@ async function startConversation() {
         // Clean up any previous session
         if (pc) {
             stopConversation();
+            // Add a small delay to ensure cleanup is complete
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Get session token from our server
@@ -104,6 +106,9 @@ async function startConversation() {
         if (!tokenResponse.ok) {
             throw new Error(`Server error: ${data.error || tokenResponse.statusText}`);
         }
+
+        // Check if user toggled off during fetch
+        if (!isActive) return;
 
         const EPHEMERAL_KEY = data.client_secret.value;
 
@@ -116,6 +121,9 @@ async function startConversation() {
         document.body.appendChild(audioEl);
 
         pc.ontrack = e => {
+            // Check if we're still active
+            if (!isActive || !pc) return;
+
             audioEl.srcObject = e.streams[0];
             statusText.textContent = "AI is ready to talk";
 
@@ -131,7 +139,7 @@ async function startConversation() {
 
             // Regularly check if AI is speaking
             function checkAudioLevel() {
-                if (!audioEl || !audioEl.srcObject) return;
+                if (!audioEl || !audioEl.srcObject || !isActive) return;
 
                 analyser.getByteFrequencyData(dataArray);
                 let sum = 0;
@@ -152,11 +160,38 @@ async function startConversation() {
             requestAnimationFrame(checkAudioLevel);
         };
 
+        // Check if still active before continuing
+        if (!isActive) {
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+            return;
+        }
+
         // Add local audio track (microphone)
-        micStream = await navigator.mediaDevices.getUserMedia({
-            audio: true
-        });
-        micStream.getTracks().forEach(track => pc.addTrack(track, micStream));
+        try {
+            micStream = await navigator.mediaDevices.getUserMedia({
+                audio: true
+            });
+
+            // Check if still active after getting media
+            if (!isActive || !pc) {
+                if (micStream) {
+                    micStream.getTracks().forEach(track => track.stop());
+                    micStream = null;
+                }
+                return;
+            }
+
+            micStream.getTracks().forEach(track => pc.addTrack(track, micStream));
+        } catch (mediaError) {
+            console.error('Error accessing microphone:', mediaError);
+            statusText.textContent = `Microphone error: ${mediaError.message}`;
+            toggleSwitch.checked = false;
+            isActive = false;
+            return;
+        }
 
         // Set up data channel
         dc = pc.createDataChannel("oai-events");
@@ -164,6 +199,10 @@ async function startConversation() {
 
         // Create and send offer
         const offer = await pc.createOffer();
+
+        // Check if still active
+        if (!isActive || !pc) return;
+
         await pc.setLocalDescription(offer);
 
         const baseUrl = "https://api.openai.com/v1/realtime";
@@ -178,6 +217,9 @@ async function startConversation() {
             },
         });
 
+        // Check again if still active
+        if (!isActive || !pc) return;
+
         if (!sdpResponse.ok) {
             throw new Error(`Failed to connect: ${sdpResponse.status} ${sdpResponse.statusText}`);
         }
@@ -187,8 +229,26 @@ async function startConversation() {
             sdp: await sdpResponse.text(),
         };
 
-        await pc.setRemoteDescription(answer);
-        statusText.textContent = "Connected - I'm listening...";
+        // Final check before setting remote description
+        if (pc && isActive) {
+            try {
+                // Check the signaling state before setting remote description
+                if (pc.signalingState === "have-local-offer") {
+                    await pc.setRemoteDescription(answer);
+                    statusText.textContent = "Connected - I'm listening...";
+                } else {
+                    console.warn("Invalid signaling state for setRemoteDescription:", pc.signalingState);
+                    // Reset the connection if in invalid state
+                    stopConversation();
+                    toggleSwitch.checked = false;
+                }
+            } catch (rtcError) {
+                console.error("WebRTC error:", rtcError);
+                statusText.textContent = `Connection error: ${rtcError.message}`;
+                stopConversation();
+                toggleSwitch.checked = false;
+            }
+        }
 
     } catch (error) {
         console.error('Error starting conversation:', error);
