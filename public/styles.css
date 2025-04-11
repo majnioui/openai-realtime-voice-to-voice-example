@@ -141,6 +141,32 @@ body {
     font-weight: 500;
 }
 
+.animation-player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+}
+
+#speaking-animation {
+    opacity: 0;
+}
+
+#idle-animation {
+    opacity: 1;
+}
+
+.ai-speaking #speaking-animation {
+    opacity: 1;
+}
+
+.ai-speaking #idle-animation {
+    opacity: 0;
+}
+
 /* Media queries for responsiveness */
 @media (max-width: 768px) {
     .animation-container {

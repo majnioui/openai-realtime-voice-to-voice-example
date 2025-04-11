@@ -4,11 +4,13 @@ const animationContainer = document.getElementById('animationContainer');
 const animationWrapper = document.getElementById('animationWrapper');
 const userSpeakingIndicator = document.getElementById('userSpeakingIndicator');
 const statusText = document.getElementById('statusText');
-const aiAnimation = document.getElementById('aiAnimation');
+const aiSpeakingAnimation = document.getElementById('aiSpeakingAnimation');
+const aiIdleAnimation = document.getElementById('aiIdleAnimation');
 
 // Animation URLs
 const userSpeakingAnimationUrl = 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json';
-const newAnimationUrl = 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json';
+const speakingAnimationUrl = 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json';
+const idleAnimationUrl = 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json';
 
 // Global variables
 let pc = null;
@@ -22,14 +24,24 @@ let isSpeaking = false;
 // Event listeners
 toggleButton.addEventListener('click', toggleConversation);
 
-// Initialize with animation paused
+// Initialize animations with proper speeds
 document.addEventListener('DOMContentLoaded', () => {
-    // Add event listener for when the animation is ready
-    aiAnimation.addEventListener('ready', () => {
-        console.log("Animation ready, setting to first frame");
-        aiAnimation.pause();
-        // Set to first frame
-        aiAnimation.seek('0%');
+    // Force different speeds for the two animations to distinguish them
+
+    // Make sure both animations are loaded properly
+    aiIdleAnimation.addEventListener('ready', () => {
+        console.log("Idle animation ready");
+        // Ensure idle animation is always playing at slow speed
+        aiIdleAnimation.setSpeed(0.5);
+        aiIdleAnimation.play();
+    });
+
+    aiSpeakingAnimation.addEventListener('ready', () => {
+        console.log("Speaking animation ready");
+        // Set faster speed for speaking animation
+        aiSpeakingAnimation.setSpeed(2);
+        // Preload first frame but keep paused
+        aiSpeakingAnimation.pause();
     });
 });
 
@@ -46,17 +58,30 @@ function toggleConversation() {
 function switchAnimation(isAISpeaking) {
     if (isAISpeaking === isSpeaking) return;
 
+    console.log("Animation state changing to:", isAISpeaking ? "SPEAKING" : "IDLE");
+
+    // Set state before visual changes to prevent multiple transitions
     isSpeaking = isAISpeaking;
 
-    // No need to switch animations since we're only using one animation
-    // Just update the visibility and animation state
-    if (isAISpeaking) {
-        animationWrapper.classList.add('ai-speaking');
-        aiAnimation.play();
-    } else {
-        animationWrapper.classList.remove('ai-speaking');
-        aiAnimation.pause();
-    }
+    // Add a small delay to ensure smooth transition
+    setTimeout(() => {
+        // Update CSS class for smooth transition
+        if (isAISpeaking) {
+            animationWrapper.classList.add('ai-speaking');
+            // Ensure speaking animation is playing at faster speed
+            aiSpeakingAnimation.setSpeed(2);
+            aiSpeakingAnimation.play();
+            console.log("Speaking animation playing at speed 2");
+        } else {
+            animationWrapper.classList.remove('ai-speaking');
+            // We don't pause the speaking animation immediately to allow for smooth transition
+            setTimeout(() => {
+                if (!isSpeaking) {  // Double-check state hasn't changed
+                    aiSpeakingAnimation.pause();
+                }
+            }, 800); // Match transition time from CSS
+        }
+    }, 10);
 }
 
 // Start conversation
@@ -67,6 +92,13 @@ async function startConversation() {
         toggleButton.classList.add('active');
         isActive = true;
         statusText.textContent = "Connecting to AI...";
+
+        // Reset animation state
+        animationWrapper.classList.remove('ai-speaking');
+        isSpeaking = false;
+        aiSpeakingAnimation.pause();
+        aiIdleAnimation.setSpeed(0.5);
+        aiIdleAnimation.play();
 
         // Clean up any previous session
         if (pc) {
@@ -117,7 +149,14 @@ async function startConversation() {
                 }
 
                 const average = sum / bufferLength;
-                switchAnimation(average > 10);
+                const threshold = 10; // Adjust if needed
+
+                // Debug info to help troubleshoot
+                if (average > threshold) {
+                    console.log("Audio level:", average, "- AI is speaking");
+                }
+
+                switchAnimation(average > threshold);
 
                 if (pc && isActive) {
                     requestAnimationFrame(checkAudioLevel);
@@ -232,7 +271,7 @@ function stopConversation() {
     // Reset animation to idle
     animationWrapper.classList.remove('ai-speaking');
     isSpeaking = false;
-    aiAnimation.pause();
+    aiSpeakingAnimation.pause();
 
     // Clean up user speaking animation
     userSpeakingIndicator.innerHTML = '';
