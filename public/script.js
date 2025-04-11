@@ -1,5 +1,5 @@
 // UI elements
-const toggleButton = document.getElementById('toggleButton');
+const toggleSwitch = document.getElementById('toggleSwitch');
 const animationContainer = document.getElementById('animationContainer');
 const animationWrapper = document.getElementById('animationWrapper');
 const userSpeakingIndicator = document.getElementById('userSpeakingIndicator');
@@ -22,7 +22,7 @@ let isActive = false;
 let isSpeaking = false;
 
 // Event listeners
-toggleButton.addEventListener('click', toggleConversation);
+toggleSwitch.addEventListener('change', toggleConversation);
 
 // Initialize animations with proper speeds
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Toggle conversation on/off
 function toggleConversation() {
-    if (!isActive) {
+    if (toggleSwitch.checked) {
         startConversation();
     } else {
         stopConversation();
@@ -82,8 +82,6 @@ function switchAnimation(isAISpeaking) {
 async function startConversation() {
     try {
         // Update UI
-        toggleButton.textContent = "OFF";
-        toggleButton.classList.add('active');
         isActive = true;
         statusText.textContent = "Connecting to AI...";
 
@@ -195,8 +193,7 @@ async function startConversation() {
     } catch (error) {
         console.error('Error starting conversation:', error);
         statusText.textContent = `Error: ${error.message}`;
-        toggleButton.textContent = "ON";
-        toggleButton.classList.remove('active');
+        toggleSwitch.checked = false;
         isActive = false;
     }
 }
@@ -225,8 +222,6 @@ function handleMessage(event) {
 // Stop conversation
 function stopConversation() {
     // Update UI state
-    toggleButton.textContent = "ON";
-    toggleButton.classList.remove('active');
     isActive = false;
 
     // Close data channel
