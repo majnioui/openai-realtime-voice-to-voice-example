@@ -212,7 +212,7 @@ const CONFIG = {
           setTimeout(() => {
             this.toggleMicrophone(true);
             uiController.updateStatus("AI is listening...");
-          }, 500); // 500ms delay to ensure AI has fully finished
+          }, 100); // 100ms delay to ensure AI has fully finished
         }
       });
 
