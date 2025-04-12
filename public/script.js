@@ -207,11 +207,17 @@ const CONFIG = {
           // AI has started speaking - mute the microphone
           this.toggleMicrophone(false);
           uiController.updateStatus("AI is speaking...");
+          // Ensure animation is fully visible
+          elements.animationWrapper.classList.add('ai-speaking');
+          elements.aiSpeakingAnimation.setSpeed(CONFIG.animation.speeds.speaking);
+          elements.aiSpeakingAnimation.play();
         } else if (data.type === "output_audio_buffer.stopped") {
           // AI has finished speaking - unmute the microphone after a short delay
           setTimeout(() => {
             this.toggleMicrophone(true);
             uiController.updateStatus("AI is listening...");
+            // Ensure animation is properly reset
+            uiController.resetAnimationState();
           }, 100); // 100ms delay to ensure AI has fully finished
         }
       });
