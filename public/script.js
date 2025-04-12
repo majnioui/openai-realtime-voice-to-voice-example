@@ -203,10 +203,28 @@ const CONFIG = {
         } else if (data.type === "input_audio_buffer.speech_stopped") {
           uiController.toggleUserSpeakingIndicator(false);
           uiController.updateStatus("Processing your request...");
+        } else if (data.type === "output_audio_buffer.started") {
+          // AI has started speaking - mute the microphone
+          this.toggleMicrophone(false);
+          uiController.updateStatus("AI is speaking...");
+        } else if (data.type === "output_audio_buffer.stopped") {
+          // AI has finished speaking - unmute the microphone after a short delay
+          setTimeout(() => {
+            this.toggleMicrophone(true);
+            uiController.updateStatus("AI is listening...");
+          }, 500); // 500ms delay to ensure AI has fully finished
         }
       });
 
       return dc;
+    },
+
+    toggleMicrophone(enable) {
+      if (state.connection.micStream) {
+        state.connection.micStream.getTracks().forEach(track => {
+          track.enabled = enable;
+        });
+      }
     },
 
     cleanupMicStream(stream = null) {
@@ -253,6 +271,10 @@ const CONFIG = {
         if (pc.signalingState === "have-local-offer") {
           await pc.setRemoteDescription(answer);
           uiController.updateStatus("Connected - I'm listening...");
+
+          // After connection, send session update to reinforce non-interruptible mode
+          this.sendSessionUpdate();
+
           return true;
         } else {
           console.warn("Invalid signaling state for setRemoteDescription:", pc.signalingState);
@@ -263,6 +285,27 @@ const CONFIG = {
         uiController.updateStatus(`Connection error: ${error.message}`);
         return false;
       }
+    },
+
+    sendSessionUpdate() {
+      if (!state.connection.dataChannel || state.connection.dataChannel.readyState !== "open") {
+        return;
+      }
+
+      // Send a session update to reinforce non-interruptible settings
+      const updateMessage = JSON.stringify({
+        type: "session.update",
+        session: {
+          turn_detection: {
+            type: "semantic_vad",
+            eagerness: "low",
+            create_response: true,
+            interrupt_response: false
+          }
+        }
+      });
+
+      state.connection.dataChannel.send(updateMessage);
     }
   };
 

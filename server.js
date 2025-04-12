@@ -77,7 +77,7 @@ const apiControllers = {
           type: "semantic_vad",
           eagerness: "auto",
           create_response: true,
-          interrupt_response: true
+          interrupt_response: false
         },
         input_audio_noise_reduction: {
           type: CONFIG.noiseReduction
