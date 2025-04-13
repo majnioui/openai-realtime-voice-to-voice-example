@@ -41,7 +41,11 @@ const CONFIG = {
     },
     status: {
       isActive: false,
-      isSpeaking: false
+      isSpeaking: false,
+      animationsLoaded: {
+        idle: false,
+        speaking: false
+      }
     }
   };
 
@@ -53,14 +57,40 @@ const CONFIG = {
 
     // Initialize animations
     initAnimations() {
-      // Initialize idle animation
+      // Initialize both animations but keep speaking hidden initially
+      // Idle animation
       elements.aiIdleIndicator.innerHTML = `
         <dotlottie-player src="${CONFIG.animation.urls.aiIdle}" background="transparent"
         speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
       `;
+
+      // Pre-load speaking animation but keep it hidden
+      elements.aiSpeakingIndicator.innerHTML = `
+        <dotlottie-player src="${CONFIG.animation.urls.aiSpeaking}" background="transparent"
+        speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
+      `;
+
+      // Add load event listeners to track when animations are fully loaded
+      const idlePlayer = elements.aiIdleIndicator.querySelector('dotlottie-player');
+      const speakingPlayer = elements.aiSpeakingIndicator.querySelector('dotlottie-player');
+
+      if (idlePlayer) {
+        idlePlayer.addEventListener('ready', () => {
+          state.status.animationsLoaded.idle = true;
+          console.log('Idle animation loaded');
+        });
+      }
+
+      if (speakingPlayer) {
+        speakingPlayer.addEventListener('ready', () => {
+          state.status.animationsLoaded.speaking = true;
+          console.log('Speaking animation loaded');
+        });
+      }
     },
 
     toggleUserSpeakingIndicator(isSpeaking) {
+      // Just update the status instead of showing an indicator
       if (isSpeaking) {
         this.updateStatus("Listening to you...");
       }
@@ -71,26 +101,29 @@ const CONFIG = {
         return;
       }
 
+      // If the intended animation isn't loaded yet, delay switching
+      if (isAISpeaking && !state.status.animationsLoaded.speaking) {
+        console.log('Speaking animation not loaded yet, delaying switch');
+        setTimeout(() => this.switchAnimation(isAISpeaking, audioLevel), 100);
+        return;
+      } else if (!isAISpeaking && !state.status.animationsLoaded.idle) {
+        console.log('Idle animation not loaded yet, delaying switch');
+        setTimeout(() => this.switchAnimation(isAISpeaking, audioLevel), 100);
+        return;
+      }
+
       state.status.isSpeaking = isAISpeaking;
 
-      setTimeout(() => {
-        if (isAISpeaking) {
-          elements.animationWrapper.classList.add('ai-speaking');
-          // Add Lottie animation for AI speaking
-          elements.aiSpeakingIndicator.innerHTML = `
-            <dotlottie-player src="${CONFIG.animation.urls.aiSpeaking}" background="transparent"
-            speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
-          `;
-        } else {
-          elements.animationWrapper.classList.remove('ai-speaking');
-          elements.aiSpeakingIndicator.innerHTML = '';
-        }
-      }, 10);
+      // Simply toggle classes to show/hide animations - no need to recreate them
+      if (isAISpeaking) {
+        elements.animationWrapper.classList.add('ai-speaking');
+      } else {
+        elements.animationWrapper.classList.remove('ai-speaking');
+      }
     },
 
     resetAnimationState() {
       elements.animationWrapper.classList.remove('ai-speaking');
-      elements.aiSpeakingIndicator.innerHTML = '';
       state.status.isSpeaking = false;
     }
   };
@@ -203,16 +236,19 @@ const CONFIG = {
           // AI has started speaking - mute the microphone
           this.toggleMicrophone(false);
           uiController.updateStatus("AI is speaking...");
-          // Ensure animation is fully visible
-          elements.animationWrapper.classList.add('ai-speaking');
+
+          // Use the smooth animation transition
+          uiController.switchAnimation(true);
         } else if (data.type === "output_audio_buffer.stopped") {
-          // AI has finished speaking - unmute the microphone after a short delay
+          // AI has finished speaking - unmute the microphone after a delay
+          // Give animation time to complete transition before changing state
           setTimeout(() => {
             this.toggleMicrophone(true);
             uiController.updateStatus("AI is listening...");
-            // Ensure animation is properly reset
-            uiController.resetAnimationState();
-          }, 100); // 100ms delay to ensure AI has fully finished
+
+            // Use the smooth animation transition
+            uiController.switchAnimation(false);
+          }, 500); // Longer delay to match CSS animation duration
         }
       });
 

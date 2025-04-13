@@ -113,7 +113,7 @@ body {
     left: 0;
     z-index: 4;
     opacity: 1;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.5s ease;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -129,6 +129,7 @@ body {
 
 .ai-speaking .ai-idle-indicator {
     opacity: 0;
+    transition: opacity 0.5s ease;
 }
 
 /* AI Speaking animation */
@@ -138,7 +139,7 @@ body {
     height: 100%;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.5s ease;
     z-index: 5;
     top: 0;
     left: 0;
@@ -149,6 +150,7 @@ body {
 
 .ai-speaking .ai-speaking-indicator {
     opacity: 1;
+    transition: opacity 0.5s ease;
 }
 
 /* Outer pulsing circle - highly visible on black */
