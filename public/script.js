@@ -77,14 +77,12 @@ const CONFIG = {
       if (idlePlayer) {
         idlePlayer.addEventListener('ready', () => {
           state.status.animationsLoaded.idle = true;
-          console.log('Idle animation loaded');
         });
       }
 
       if (speakingPlayer) {
         speakingPlayer.addEventListener('ready', () => {
           state.status.animationsLoaded.speaking = true;
-          console.log('Speaking animation loaded');
         });
       }
     },
@@ -101,20 +99,8 @@ const CONFIG = {
         return;
       }
 
-      // If the intended animation isn't loaded yet, delay switching
-      if (isAISpeaking && !state.status.animationsLoaded.speaking) {
-        console.log('Speaking animation not loaded yet, delaying switch');
-        setTimeout(() => this.switchAnimation(isAISpeaking, audioLevel), 100);
-        return;
-      } else if (!isAISpeaking && !state.status.animationsLoaded.idle) {
-        console.log('Idle animation not loaded yet, delaying switch');
-        setTimeout(() => this.switchAnimation(isAISpeaking, audioLevel), 100);
-        return;
-      }
-
       state.status.isSpeaking = isAISpeaking;
 
-      // Simply toggle classes to show/hide animations - no need to recreate them
       if (isAISpeaking) {
         elements.animationWrapper.classList.add('ai-speaking');
       } else {
@@ -233,22 +219,19 @@ const CONFIG = {
           uiController.toggleUserSpeakingIndicator(false);
           uiController.updateStatus("Processing your request...");
         } else if (data.type === "output_audio_buffer.started") {
-          // AI has started speaking - mute the microphone
+          // AI has started speaking - mute the microphone immediately
           this.toggleMicrophone(false);
           uiController.updateStatus("AI is speaking...");
 
-          // Use the smooth animation transition
+          // Use immediate animation transition
           uiController.switchAnimation(true);
         } else if (data.type === "output_audio_buffer.stopped") {
-          // AI has finished speaking - unmute the microphone after a delay
-          // Give animation time to complete transition before changing state
-          setTimeout(() => {
-            this.toggleMicrophone(true);
-            uiController.updateStatus("AI is listening...");
+          // AI has finished speaking - unmute the microphone immediately
+          this.toggleMicrophone(true);
+          uiController.updateStatus("AI is listening...");
 
-            // Use the smooth animation transition
-            uiController.switchAnimation(false);
-          }, 500); // Longer delay to match CSS animation duration
+          // Use immediate animation transition
+          uiController.switchAnimation(false);
         }
       });
 
