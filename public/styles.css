@@ -88,6 +88,20 @@ body {
     height: 100%;
     top: 0;
     left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Animation wrapper to contain Lottie properly */
+.animation-wrapper {
+    width: 90%;
+    height: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
 /* AI Idle animation */
@@ -100,6 +114,17 @@ body {
     z-index: 4;
     opacity: 1;
     transition: opacity 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.ai-idle-indicator dotlottie-player,
+.ai-speaking-indicator dotlottie-player {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+    display: block;
 }
 
 .ai-speaking .ai-idle-indicator {
@@ -117,6 +142,9 @@ body {
     z-index: 5;
     top: 0;
     left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .ai-speaking .ai-speaking-indicator {

@@ -56,7 +56,7 @@ const CONFIG = {
       // Initialize idle animation
       elements.aiIdleIndicator.innerHTML = `
         <dotlottie-player src="${CONFIG.animation.urls.aiIdle}" background="transparent"
-        speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
+        speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
       `;
     },
 
@@ -79,7 +79,7 @@ const CONFIG = {
           // Add Lottie animation for AI speaking
           elements.aiSpeakingIndicator.innerHTML = `
             <dotlottie-player src="${CONFIG.animation.urls.aiSpeaking}" background="transparent"
-            speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
+            speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
           `;
         } else {
           elements.animationWrapper.classList.remove('ai-speaking');
