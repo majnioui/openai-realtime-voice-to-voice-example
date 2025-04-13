@@ -7,13 +7,7 @@ const CONFIG = {
   },
   animation: {
     urls: {
-      userSpeaking: 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json',
-      aiSpeaking: 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json',
-      aiIdle: 'https://lottie.host/75f3ff82-a7ff-44a5-bccd-9c6b5514fb23/PIFu2zeQgJ.json'
-    },
-    speeds: {
-      idle: 0.5,
-      speaking: 2
+      userSpeaking: 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json'
     },
     transitionDelay: 800
   },
@@ -31,8 +25,7 @@ const CONFIG = {
     animationWrapper: document.getElementById('animationWrapper'),
     userSpeakingIndicator: document.getElementById('userSpeakingIndicator'),
     statusText: document.getElementById('statusText'),
-    aiSpeakingAnimation: document.getElementById('aiSpeakingAnimation'),
-    aiIdleAnimation: document.getElementById('aiIdleAnimation')
+    aiRobotImage: document.getElementById('aiRobotImage')
   };
 
   // State
@@ -76,16 +69,8 @@ const CONFIG = {
       setTimeout(() => {
         if (isAISpeaking) {
           elements.animationWrapper.classList.add('ai-speaking');
-          elements.aiSpeakingAnimation.setSpeed(CONFIG.animation.speeds.speaking);
-          elements.aiSpeakingAnimation.play();
         } else {
           elements.animationWrapper.classList.remove('ai-speaking');
-
-          setTimeout(() => {
-            if (!state.status.isSpeaking) {
-              elements.aiSpeakingAnimation.pause();
-            }
-          }, CONFIG.animation.transitionDelay);
         }
       }, 10);
     },
@@ -93,9 +78,6 @@ const CONFIG = {
     resetAnimationState() {
       elements.animationWrapper.classList.remove('ai-speaking');
       state.status.isSpeaking = false;
-      elements.aiSpeakingAnimation.pause();
-      elements.aiIdleAnimation.setSpeed(CONFIG.animation.speeds.idle);
-      elements.aiIdleAnimation.play();
     }
   };
 
@@ -209,8 +191,6 @@ const CONFIG = {
           uiController.updateStatus("AI is speaking...");
           // Ensure animation is fully visible
           elements.animationWrapper.classList.add('ai-speaking');
-          elements.aiSpeakingAnimation.setSpeed(CONFIG.animation.speeds.speaking);
-          elements.aiSpeakingAnimation.play();
         } else if (data.type === "output_audio_buffer.stopped") {
           // AI has finished speaking - unmute the microphone after a short delay
           setTimeout(() => {
@@ -423,19 +403,6 @@ const CONFIG = {
     init() {
       // Event listeners
       elements.toggleSwitch.addEventListener('change', () => this.toggleConversation());
-
-      // Initialize animations
-      document.addEventListener('DOMContentLoaded', () => {
-        elements.aiIdleAnimation.addEventListener('ready', () => {
-          elements.aiIdleAnimation.setSpeed(CONFIG.animation.speeds.idle);
-          elements.aiIdleAnimation.play();
-        });
-
-        elements.aiSpeakingAnimation.addEventListener('ready', () => {
-          elements.aiSpeakingAnimation.setSpeed(CONFIG.animation.speeds.speaking);
-          elements.aiSpeakingAnimation.pause();
-        });
-      });
     }
   };
 
