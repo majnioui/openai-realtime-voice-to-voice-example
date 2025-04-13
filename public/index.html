@@ -21,22 +21,15 @@
     <div class="main-container">
         <div class="animation-container" id="animationWrapper">
             <div class="animation-glow"></div>
-       <!-- <div class="effect-border"></div> -->
-            <div class="speech-waves">
-                <div class="speech-wave"></div>
-                <div class="speech-wave"></div>
-                <div class="speech-wave"></div>
-                <div class="speech-wave"></div>
-            </div>
-            <div id="animationContainer">
-                <!-- Single fixed robot image -->
-                <div class="animation-player">
-                    <img src="acs-robot.svg" alt="AI Assistant" id="aiRobotImage" class="robot-image">
-                </div>
+            <!-- AI animations container -->
+            <div class="ai-animation-container">
+                <!-- AI idle animation (default state) -->
+                <div class="ai-idle-indicator" id="aiIdleIndicator"></div>
+                <!-- AI speaking animation -->
+                <div class="ai-speaking-indicator" id="aiSpeakingIndicator"></div>
             </div>
         </div>
 
-        <div class="user-speaking-indicator" id="userSpeakingIndicator"></div>
         <div class="status-text" id="statusText">ACS AI Voice Assistant</div>
     </div>
 

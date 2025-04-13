@@ -7,7 +7,9 @@ const CONFIG = {
   },
   animation: {
     urls: {
-      userSpeaking: 'https://lottie.host/bdb5b41f-8111-4d3e-8018-e8962d96a186/x108PiQKJi.json'
+      userSpeaking: 'https://lottie.host/308f834a-9cd6-4113-809c-d61c9285a6b3/KCwub64V8U.json',
+      aiSpeaking: 'https://lottie.host/1b4020ce-76d0-45ef-aaa2-880193a287b1/15x8Fg9erW.json',
+      aiIdle: 'https://lottie.host/84beab53-1f3b-4ccd-b72d-a8360e599575/L38LiwQdsE.json'
     },
     transitionDelay: 800
   },
@@ -24,9 +26,9 @@ const CONFIG = {
   const elements = {
     toggleSwitch: document.getElementById('toggleSwitch'),
     animationWrapper: document.getElementById('animationWrapper'),
-    userSpeakingIndicator: document.getElementById('userSpeakingIndicator'),
-    statusText: document.getElementById('statusText'),
-    aiRobotImage: document.getElementById('aiRobotImage')
+    aiSpeakingIndicator: document.getElementById('aiSpeakingIndicator'),
+    aiIdleIndicator: document.getElementById('aiIdleIndicator'),
+    statusText: document.getElementById('statusText')
   };
 
   // State
@@ -49,23 +51,23 @@ const CONFIG = {
       elements.statusText.textContent = message;
     },
 
+    // Initialize animations
+    initAnimations() {
+      // Initialize idle animation
+      elements.aiIdleIndicator.innerHTML = `
+        <dotlottie-player src="${CONFIG.animation.urls.aiIdle}" background="transparent"
+        speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
+      `;
+    },
+
     toggleUserSpeakingIndicator(isSpeaking) {
       if (isSpeaking) {
-        elements.userSpeakingIndicator.classList.add('user-speaking');
-        elements.userSpeakingIndicator.innerHTML = `
-          <dotlottie-player src="${CONFIG.animation.urls.userSpeaking}" background="transparent"
-          speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
-        `;
-      } else {
-        elements.userSpeakingIndicator.classList.remove('user-speaking');
-        elements.userSpeakingIndicator.innerHTML = '';
+        this.updateStatus("Listening to you...");
       }
     },
 
     switchAnimation(isAISpeaking, audioLevel = 0) {
       if (isAISpeaking === state.status.isSpeaking && state.status.isSpeaking) {
-        // If already speaking, update wave intensity based on audio level
-        this.updateWaveIntensity(audioLevel);
         return;
       }
 
@@ -74,33 +76,21 @@ const CONFIG = {
       setTimeout(() => {
         if (isAISpeaking) {
           elements.animationWrapper.classList.add('ai-speaking');
+          // Add Lottie animation for AI speaking
+          elements.aiSpeakingIndicator.innerHTML = `
+            <dotlottie-player src="${CONFIG.animation.urls.aiSpeaking}" background="transparent"
+            speed="1" style="width: 100%; height: 100%" loop autoplay></dotlottie-player>
+          `;
         } else {
           elements.animationWrapper.classList.remove('ai-speaking');
+          elements.aiSpeakingIndicator.innerHTML = '';
         }
       }, 10);
     },
 
-    updateWaveIntensity(audioLevel) {
-      // Only proceed if waves are visible (AI is speaking)
-      if (!state.status.isSpeaking) return;
-
-      // Select all speech wave elements
-      const waves = document.querySelectorAll('.speech-wave');
-      if (!waves.length) return;
-
-      // Update each wave based on audio level thresholds
-      waves.forEach((wave, index) => {
-        const threshold = CONFIG.audio.wavesThresholds[index] || 15;
-        const intensity = Math.min(1.5, Math.max(0.8, audioLevel / threshold));
-
-        // Apply dynamic scaling based on audio level
-        wave.style.transform = `scaleX(${intensity})`;
-        wave.style.opacity = Math.min(0.9, Math.max(0.3, audioLevel / 30));
-      });
-    },
-
     resetAnimationState() {
       elements.animationWrapper.classList.remove('ai-speaking');
+      elements.aiSpeakingIndicator.innerHTML = '';
       state.status.isSpeaking = false;
     }
   };
@@ -425,6 +415,9 @@ const CONFIG = {
     },
 
     init() {
+      // Initialize animations
+      uiController.initAnimations();
+
       // Event listeners
       elements.toggleSwitch.addEventListener('change', () => this.toggleConversation());
     }
