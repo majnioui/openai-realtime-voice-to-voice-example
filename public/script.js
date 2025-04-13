@@ -28,6 +28,7 @@ const CONFIG = {
     animationWrapper: document.getElementById('animationWrapper'),
     aiSpeakingIndicator: document.getElementById('aiSpeakingIndicator'),
     aiIdleIndicator: document.getElementById('aiIdleIndicator'),
+    userSpeakingIndicator: document.getElementById('userSpeakingIndicator'),
     statusText: document.getElementById('statusText')
   };
 
@@ -42,9 +43,11 @@ const CONFIG = {
     status: {
       isActive: false,
       isSpeaking: false,
+      isUserSpeaking: false,
       animationsLoaded: {
         idle: false,
-        speaking: false
+        speaking: false,
+        userSpeaking: false
       }
     }
   };
@@ -70,9 +73,16 @@ const CONFIG = {
         speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
       `;
 
+      // Pre-load user speaking animation but keep it hidden
+      elements.userSpeakingIndicator.innerHTML = `
+        <dotlottie-player src="${CONFIG.animation.urls.userSpeaking}" background="transparent"
+        speed="1" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%;" loop autoplay></dotlottie-player>
+      `;
+
       // Add load event listeners to track when animations are fully loaded
       const idlePlayer = elements.aiIdleIndicator.querySelector('dotlottie-player');
       const speakingPlayer = elements.aiSpeakingIndicator.querySelector('dotlottie-player');
+      const userSpeakingPlayer = elements.userSpeakingIndicator.querySelector('dotlottie-player');
 
       if (idlePlayer) {
         idlePlayer.addEventListener('ready', () => {
@@ -85,12 +95,32 @@ const CONFIG = {
           state.status.animationsLoaded.speaking = true;
         });
       }
+
+      if (userSpeakingPlayer) {
+        userSpeakingPlayer.addEventListener('ready', () => {
+          state.status.animationsLoaded.userSpeaking = true;
+        });
+      }
     },
 
     toggleUserSpeakingIndicator(isSpeaking) {
-      // Just update the status instead of showing an indicator
+      if (isSpeaking === state.status.isUserSpeaking) {
+        return;
+      }
+
+      state.status.isUserSpeaking = isSpeaking;
+
       if (isSpeaking) {
+        elements.animationWrapper.classList.add('user-speaking');
+        elements.animationWrapper.classList.remove('ai-speaking');
         this.updateStatus("Listening to you...");
+      } else {
+        elements.animationWrapper.classList.remove('user-speaking');
+
+        // If AI is not speaking, show idle animation
+        if (!state.status.isSpeaking) {
+          this.updateStatus("AI is listening...");
+        }
       }
     },
 
@@ -110,7 +140,9 @@ const CONFIG = {
 
     resetAnimationState() {
       elements.animationWrapper.classList.remove('ai-speaking');
+      elements.animationWrapper.classList.remove('user-speaking');
       state.status.isSpeaking = false;
+      state.status.isUserSpeaking = false;
     }
   };
 
