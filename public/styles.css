@@ -6,18 +6,23 @@
     --light-color: #f8f9fa;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
     margin: 0;
     padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--primary-color);
     background-image: url(bg_body.jpg);
     background-size: cover;
-    height: 100vh;
+    background-position: center;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
 }
 
 /* Common positioning classes */
@@ -32,7 +37,7 @@ body {
 .logo {
     top: 20px;
     left: 20px;
-    width: 150px;
+    width: 120px;
     filter: brightness(0) invert(1);
 }
 
@@ -76,11 +81,15 @@ body {
     justify-content: center;
     width: 100%;
     height: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .animation-container {
-    width: 90vh;
-    height: 90vh;
+    width: min(85vh, 85vw, 800px);
+    height: min(85vh, 85vw, 800px);
     position: relative;
     margin: 0 auto;
     transition: opacity 0.3s ease;
@@ -117,8 +126,8 @@ body {
 
 /* Animation wrapper to contain Lottie properly */
 .animation-wrapper {
-    width: 90%;
-    height: 90%;
+    width: 100%;
+    height: 100%;
     position: relative;
 }
 
@@ -136,7 +145,8 @@ body {
 }
 
 .ai-idle-indicator dotlottie-player,
-.ai-speaking-indicator dotlottie-player {
+.ai-speaking-indicator dotlottie-player,
+.user-speaking-indicator dotlottie-player {
     width: 100% !important;
     height: 100% !important;
     object-fit: contain;
@@ -169,33 +179,81 @@ body {
 }
 
 /* Media queries adjustments for animations */
-@media (max-width: 768px) {
+@media (min-width: 1440px) {
+    /* For large desktop screens */
     .animation-container {
-        width: 80vh;
-        height: 80vh;
+        width: min(90vh, 90vw, 1000px);
+        height: min(90vh, 90vw, 1000px);
+    }
+}
+
+@media (max-width: 768px) {
+    .logo {
+        width: 100px;
+        top: 15px;
+        left: 15px;
     }
 
-    .logo {
-        width: 120px;
+    .control-buttons {
+        top: 15px;
+        right: 15px;
+    }
+
+    .status-text {
+        font-size: 14px;
+        bottom: 15px;
+    }
+
+    .animation-container {
+        width: min(90vh, 90vw, 600px);
+        height: min(90vh, 90vw, 600px);
+    }
+
+    .main-container {
+        padding: 10px;
     }
 }
 
 @media (max-width: 480px) {
-    .animation-container {
-        width: 70vh;
-        height: 70vh;
+    .logo {
+        width: 80px;
+        top: 10px;
+        left: 10px;
     }
 
-    .logo {
-        width: 100px;
+    .animation-container {
+        width: min(92vh, 92vw, 500px);
+        height: min(92vh, 92vw, 500px);
+    }
+
+    .status-text {
+        font-size: 12px;
+        bottom: 10px;
+    }
+
+    .main-container {
+        padding: 5px;
     }
 }
 
 /* For very small screens or landscape on mobile */
 @media (max-height: 500px) {
+    .main-container {
+        padding: 5px;
+    }
+
     .animation-container {
-        width: 80vw;
-        height: 80vw;
+        width: min(90vh, 90vw, 450px);
+        height: min(90vh, 90vw, 450px);
+    }
+
+    .logo {
+        width: 60px;
+    }
+
+    .status-text {
+        font-size: 11px;
+        bottom: 5px;
     }
 }
 
