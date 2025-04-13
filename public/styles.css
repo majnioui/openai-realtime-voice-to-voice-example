@@ -264,6 +264,51 @@ body {
             box-shadow: 0 0 0 0 rgba(0, 97, 164, 0);
         }
     }
+
+    /* Adjusted speech waves for medium screens */
+    .speech-wave {
+        height: 3.5px;
+    }
+
+    .speech-wave:nth-child(1) {
+        top: 20%;
+        right: 22%;
+    }
+
+    .speech-wave:nth-child(2) {
+        top: 30%;
+        right: 17%;
+    }
+
+    .speech-wave:nth-child(3) {
+        top: 40%;
+        right: 12%;
+    }
+
+    .speech-wave:nth-child(4) {
+        top: 50%;
+        right: 17%;
+        height: 3px;
+    }
+
+    @keyframes wave-animation {
+        0% {
+            opacity: 0.3;
+            width: 15px;
+        }
+        20% {
+            opacity: 0.9;
+            width: 35px;
+        }
+        80% {
+            opacity: 0.7;
+            width: 45px;
+        }
+        100% {
+            opacity: 0.3;
+            width: 15px;
+        }
+    }
 }
 
 @media (max-width: 480px) {
@@ -291,6 +336,52 @@ body {
         }
         100% {
             box-shadow: 0 0 0 0 rgba(0, 97, 164, 0);
+        }
+    }
+
+    /* Adjusted speech waves for smaller screens */
+    .speech-wave {
+        height: 3px;
+        width: 30px;
+    }
+
+    .speech-wave:nth-child(1) {
+        top: 20%;
+        right: 25%;
+    }
+
+    .speech-wave:nth-child(2) {
+        top: 30%;
+        right: 20%;
+    }
+
+    .speech-wave:nth-child(3) {
+        top: 40%;
+        right: 15%;
+    }
+
+    .speech-wave:nth-child(4) {
+        top: 50%;
+        right: 20%;
+        height: 2.5px;
+    }
+
+    @keyframes wave-animation {
+        0% {
+            opacity: 0.3;
+            width: 12px;
+        }
+        20% {
+            opacity: 0.9;
+            width: 25px;
+        }
+        80% {
+            opacity: 0.7;
+            width: 35px;
+        }
+        100% {
+            opacity: 0.3;
+            width: 12px;
         }
     }
 }
@@ -385,6 +476,32 @@ body {
     .logo {
         width: 120px;
     }
+
+    /* Adjusted speech waves for medium screens */
+    .speech-wave {
+        height: 3.5px;
+    }
+
+    .speech-wave:nth-child(1) {
+        top: 20%;
+        right: 22%;
+    }
+
+    .speech-wave:nth-child(2) {
+        top: 30%;
+        right: 17%;
+    }
+
+    .speech-wave:nth-child(3) {
+        top: 40%;
+        right: 12%;
+    }
+
+    .speech-wave:nth-child(4) {
+        top: 50%;
+        right: 17%;
+        height: 3px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -400,6 +517,33 @@ body {
 
     .logo {
         width: 100px;
+    }
+
+    /* Adjusted speech waves for smaller screens */
+    .speech-wave {
+        height: 3px;
+        width: 30px;
+    }
+
+    .speech-wave:nth-child(1) {
+        top: 20%;
+        right: 25%;
+    }
+
+    .speech-wave:nth-child(2) {
+        top: 30%;
+        right: 20%;
+    }
+
+    .speech-wave:nth-child(3) {
+        top: 40%;
+        right: 15%;
+    }
+
+    .speech-wave:nth-child(4) {
+        top: 50%;
+        right: 20%;
+        height: 2.5px;
     }
 }
 
@@ -502,5 +646,78 @@ input:checked + .slider:before {
         transform: scale(0.95);
         border-color: rgba(0, 97, 164, 0.8);
         box-shadow: 0 0 30px rgba(0, 97, 164, 0.7);
+    }
+}
+
+/* Speech waves animation */
+.speech-waves {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 5; /* Ensure waves appear above the robot */
+}
+
+.ai-speaking .speech-waves {
+    opacity: 1;
+}
+
+.speech-wave {
+    position: absolute;
+    width: 40px;
+    height: 4px;
+    background-color: var(--secondary-color);
+    border-radius: 4px;
+    opacity: 0;
+    filter: drop-shadow(0 0 3px rgba(0, 97, 164, 0.9));
+    transform-origin: 0 center;
+}
+
+.speech-wave:nth-child(1) {
+    top: 20%;
+    right: 20%;
+    animation: wave-animation 1.2s ease-in-out infinite 0.1s;
+}
+
+.speech-wave:nth-child(2) {
+    top: 30%;
+    right: 15%;
+    animation: wave-animation 1.5s ease-in-out infinite 0.2s;
+}
+
+.speech-wave:nth-child(3) {
+    top: 40%;
+    right: 10%;
+    animation: wave-animation 1.8s ease-in-out infinite;
+}
+
+.speech-wave:nth-child(4) {
+    top: 50%;
+    right: 15%;
+    height: 3px;
+    animation: wave-animation 1.4s ease-in-out infinite 0.15s;
+}
+
+@keyframes wave-animation {
+    0% {
+        opacity: 0.3;
+        width: 20px;
+        transform: scaleX(0.8);
+    }
+    20% {
+        opacity: 0.9;
+        width: 40px;
+        transform: scaleX(1);
+    }
+    80% {
+        opacity: 0.7;
+        width: 55px;
+    }
+    100% {
+        opacity: 0.3;
+        width: 20px;
+        transform: scaleX(0.8);
     }
 }

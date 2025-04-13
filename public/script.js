@@ -13,7 +13,8 @@ const CONFIG = {
   },
   audio: {
     fftSize: 256,
-    threshold: 10
+    threshold: 10,
+    wavesThresholds: [15, 20, 25]  // Thresholds for wave animation intensity
   }
 };
 
@@ -61,8 +62,12 @@ const CONFIG = {
       }
     },
 
-    switchAnimation(isAISpeaking) {
-      if (isAISpeaking === state.status.isSpeaking) return;
+    switchAnimation(isAISpeaking, audioLevel = 0) {
+      if (isAISpeaking === state.status.isSpeaking && state.status.isSpeaking) {
+        // If already speaking, update wave intensity based on audio level
+        this.updateWaveIntensity(audioLevel);
+        return;
+      }
 
       state.status.isSpeaking = isAISpeaking;
 
@@ -73,6 +78,25 @@ const CONFIG = {
           elements.animationWrapper.classList.remove('ai-speaking');
         }
       }, 10);
+    },
+
+    updateWaveIntensity(audioLevel) {
+      // Only proceed if waves are visible (AI is speaking)
+      if (!state.status.isSpeaking) return;
+
+      // Select all speech wave elements
+      const waves = document.querySelectorAll('.speech-wave');
+      if (!waves.length) return;
+
+      // Update each wave based on audio level thresholds
+      waves.forEach((wave, index) => {
+        const threshold = CONFIG.audio.wavesThresholds[index] || 15;
+        const intensity = Math.min(1.5, Math.max(0.8, audioLevel / threshold));
+
+        // Apply dynamic scaling based on audio level
+        wave.style.transform = `scaleX(${intensity})`;
+        wave.style.opacity = Math.min(0.9, Math.max(0.3, audioLevel / 30));
+      });
     },
 
     resetAnimationState() {
@@ -109,7 +133,7 @@ const CONFIG = {
         analyser.getByteFrequencyData(dataArray);
         const average = Array.from(dataArray).reduce((sum, val) => sum + val, 0) / bufferLength;
 
-        uiController.switchAnimation(average > CONFIG.audio.threshold);
+        uiController.switchAnimation(average > CONFIG.audio.threshold, average);
 
         if (state.connection.peerConnection && state.status.isActive) {
           requestAnimationFrame(checkAudioLevel);
