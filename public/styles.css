@@ -20,20 +20,25 @@ body {
     overflow: hidden;
 }
 
-.logo {
+/* Common positioning classes */
+.fixed-element,
+.logo,
+.control-buttons,
+.status-text {
     position: fixed;
+    z-index: 10;
+}
+
+.logo {
     top: 20px;
     left: 20px;
     width: 150px;
-    z-index: 10;
     filter: brightness(0) invert(1);
 }
 
 .control-buttons {
-    position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 10;
 }
 
 .toggle-button {
@@ -81,16 +86,32 @@ body {
     transition: opacity 0.3s ease;
 }
 
-/* AI animation container */
-.ai-animation-container {
+/* Common styles for indicator elements */
+.absolute-full,
+.ai-animation-container,
+.ai-idle-indicator,
+.ai-speaking-indicator,
+.user-speaking-indicator {
     position: absolute;
     width: 100%;
     height: 100%;
     top: 0;
     left: 0;
+}
+
+.flex-center,
+.ai-animation-container,
+.animation-wrapper,
+.ai-idle-indicator,
+.ai-speaking-indicator,
+.user-speaking-indicator {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* AI animation container */
+.ai-animation-container {
     overflow: hidden;
 }
 
@@ -98,25 +119,20 @@ body {
 .animation-wrapper {
     width: 90%;
     height: 90%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     position: relative;
+}
+
+/* Animation indicators */
+.ai-idle-indicator,
+.ai-speaking-indicator,
+.user-speaking-indicator {
+    transition: opacity 0s;
 }
 
 /* AI Idle animation */
 .ai-idle-indicator {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
     z-index: 4;
     opacity: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 0s;
 }
 
 .ai-idle-indicator dotlottie-player,
@@ -127,57 +143,23 @@ body {
     display: block;
 }
 
-.ai-speaking .ai-idle-indicator {
-    opacity: 0;
-    transition: opacity 0s;
-}
-
-/* AI Speaking animation */
-.ai-speaking-indicator {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 5;
-    top: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 0s;
-}
-
-.ai-speaking .ai-speaking-indicator {
-    opacity: 1;
-    transition: opacity 0s;
-}
-
-/* User Speaking animation */
+/* Speaking indicators share these properties */
+.ai-speaking-indicator,
 .user-speaking-indicator {
-    position: absolute;
-    width: 100%;
-    height: 100%;
     pointer-events: none;
     opacity: 0;
     z-index: 5;
-    top: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 0s;
 }
 
-.user-speaking .user-speaking-indicator {
-    opacity: 1;
-    transition: opacity 0s;
-}
-
+.ai-speaking .ai-idle-indicator,
 .user-speaking .ai-idle-indicator,
 .user-speaking .ai-speaking-indicator {
     opacity: 0;
-    transition: opacity 0s;
+}
+
+.ai-speaking .ai-speaking-indicator,
+.user-speaking .user-speaking-indicator {
+    opacity: 1;
 }
 
 /* Outer pulsing circle - highly visible on black */
@@ -223,7 +205,6 @@ body {
 }
 
 .status-text {
-    position: fixed;
     bottom: 20px;
     width: 100%;
     text-align: center;
